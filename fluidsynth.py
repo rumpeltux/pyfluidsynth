@@ -27,7 +27,6 @@ Added lots of bindings and stuff to help with playing live -- Bill Peterson <alb
 import time
 from ctypes import *
 from ctypes.util import find_library
-from future.utils import iteritems
 
 # A short circuited or expression to find the FluidSynth library
 # (mostly needed for Windows distributions of libfluidsynth supplied with QSynth)
@@ -325,9 +324,9 @@ class Synth:
         fluid_settings_setnum(st, b'synth.gain', gain)
         fluid_settings_setnum(st, b'synth.sample-rate', samplerate)
         fluid_settings_setint(st, b'synth.midi-channels', channels)
-        for opt,val in iteritems(kwargs):
-            self.setting(opt, val)
         self.settings = st
+        for opt,val in kwargs.items():
+            self.setting(opt, val)
         self.synth = new_fluid_synth(st)
         self.audio_driver = None
         self.midi_driver = None
@@ -335,12 +334,14 @@ class Synth:
     def setting(self, opt, val):
         """change an arbitrary synth setting, type-smart"""
         opt = opt.encode()
-        if isinstance(val, basestring):
-            fluid_settings_setstr(self.settings, opt, val)
+        if isinstance(val, str):
+            fluid_settings_setstr(self.settings, opt, val.encode('utf8'))
         elif isinstance(val, int):
             fluid_settings_setint(self.settings, opt, val)
         elif isinstance(val, float):
             fluid_settings_setnum(self.settings, opt, val)
+        else:
+            raise RuntimeError("Unknown type: %s" % type(val))
     def start(self, driver=None, device=None, midi_driver=None):
         """Start audio output driver in separate background thread
 
