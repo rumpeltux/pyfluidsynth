@@ -65,6 +65,59 @@ new_fluid_audio_driver = cfunc('new_fluid_audio_driver', c_void_p,
                                ('settings', c_void_p, 1),
                                ('synth', c_void_p, 1))
 
+new_fluid_event = cfunc('new_fluid_event', c_void_p)
+delete_fluid_event = cfunc('delete_fluid_event', None,
+                               ('event', c_void_p, 1))
+fluid_event_set_source = cfunc('fluid_event_set_source', None,
+                               ('event', c_void_p, 1),
+                               ('source', c_short, 1))
+fluid_event_set_dest = cfunc('fluid_event_set_dest', None,
+                               ('event', c_void_p, 1),
+                               ('dest', c_short, 1))
+fluid_event_noteon = cfunc('fluid_event_noteon', None,
+                               ('event', c_void_p, 1),
+                               ('channel', c_int, 1),
+                               ('key', c_short, 1),
+                               ('velocity', c_short, 1))
+fluid_event_noteoff = cfunc('fluid_event_noteoff', None,
+                               ('event', c_void_p, 1),
+                               ('channel', c_int, 1),
+                               ('key', c_short, 1))
+
+fluid_event_all_sounds_off = cfunc('fluid_event_all_sounds_off', None,
+        ('event', c_void_p, 1),
+        ('channel', c_int, 1))
+
+new_fluid_sequencer2 = cfunc('new_fluid_sequencer2', c_void_p,
+                               ('use_system_timer', c_int, 1))
+
+fluid_sequencer_register_fluidsynth = cfunc('fluid_sequencer_register_fluidsynth', c_short,
+        ('seq', c_void_p, 1),
+        ('synth', c_void_p, 1))
+
+fluid_sequencer_add_midi_event_to_buffer = cfunc('fluid_sequencer_add_midi_event_to_buffer', c_int,
+        ('seq', c_void_p, 1),
+        ('event', c_void_p, 1))
+
+fluid_sequencer_send_at = cfunc('fluid_sequencer_send_at', c_int,
+        ('seq', c_void_p, 1),
+        ('event', c_void_p, 1),
+        ('time', c_uint, 1),
+        ('absolute', c_int, 1))
+
+fluid_sequencer_send_now = cfunc('fluid_sequencer_send_now', c_int,
+        ('seq', c_void_p, 1),
+        ('event', c_void_p, 1))
+
+fluid_sequencer_get_tick = cfunc('fluid_sequencer_get_tick', c_uint,
+        ('seq', c_void_p, 1))
+
+
+#fluid_sequencer_register_client = cfunc('fluid_sequencer_register_client', 
+
+delete_fluid_sequencer = cfunc('delete_fluid_sequencer', None,
+        ('sequencer', c_void_p, 1))
+
 fluid_settings_setstr = cfunc('fluid_settings_setstr', c_int, 
                               ('settings', c_void_p, 1),
                               ('name', c_char_p, 1),
@@ -308,6 +361,52 @@ def fluid_synth_write_s16_stereo(synth, len):
 
 
 # Object-oriented interface, simplifies access to functions
+
+class Sequencer(object):
+    def __init__(self, use_system=False):
+        self.handle = new_fluid_sequencer2(use_system)
+
+    def register_fluidsynth(self, synth):
+        return fluid_sequencer_register_fluidsynth(self.handle, synth.synth)
+
+    def add_midi_event_to_buffer(self, event):
+        return fluid_sequencer_add_midi_event_to_buffer(self.handle, event.handle)
+
+    def send_at(self, event, time, absolute=False):
+        return fluid_sequencer_send_at(self.handle, event.handle, time, absolute)
+
+    def send_now(self, event):
+        return fluid_sequencer_send_now(self.handle, event.handle)
+
+    def get_tick(self):
+        return fluid_sequencer_get_tick(self.handle)
+
+class Event(object):
+    def __init__(self):
+        self.handle = new_fluid_event()
+
+    def set_source(self, source=-1):
+        fluid_event_set_source(self.handle, source)
+        return self
+
+    def set_dest(self, synth_seq_id):
+        fluid_event_set_dest(self.handle, synth_seq_id)
+        return self
+
+    def noteon(self, chan, key, velocity):
+        fluid_event_noteon(self.handle, chan, key, velocity)
+        return self
+
+    def noteoff(self, chan, key):
+        fluid_event_noteoff(self.handle, chan, key)
+        return self
+
+    def all_sounds_off(self, chan):
+        fluid_event_all_sounds_off(self.handle, chan)
+        return self
+
+    def __del__(self):
+        delete_fluid_event(self.handle)
 
 class Synth:
     """Synth represents a FluidSynth synthesizer"""
